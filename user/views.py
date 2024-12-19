@@ -229,9 +229,15 @@ def SlotCreationForBarberView(request):
         - already logged in
     """
     if request.method == 'POST':
+        data = request.data
+        
+        serializer = serializers.SlotSerializer(data=data, fields=('start_time', 'end_time'))
+        serializer.is_valid(raise_exception=True)
+        
         barber = BarberProfile.objects.get(user=request.user)
         barber.is_available = True
-        slot = Slots.objects.create(barber=barber, start_time=request.data['start_time'], end_time=request.data['end_time'])
+        
+        slot = Slots.objects.create(barber=barber, start_time=serializer.validated_data['start_time'], end_time=serializer.validated_data['end_time'])
         slot.save()
         return Response({'Message' : 'Time slot created successfuly'}, status=status.HTTP_201_CREATED)
 
@@ -248,7 +254,15 @@ def ListBarberSlots(request):
 def BookBarberSlot(request, pk):
     if request.method == 'POST':
         customer = request.user
-        booking_slot = Slots.objects.get(pk=pk)
+        try:
+            
+            booking_slot = Slots.objects.get(pk=pk)
+            if booking_slot.is_booked == True:
+
+                return Response({'Cannot book slot' : 'Slot already booked'}, status=status.HTTP_400_BAD_REQUEST)
+
+        except:
+            return Response({'Message' : 'Slot not found'}, status=status.HTTP_404_NOT_FOUND)
         booking_slot.is_booked = True
         booking_slot.customer = customer
         booking_slot.save()

@@ -1,7 +1,10 @@
-from typing import Collection
+from typing import Collection, Iterable
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
+from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
+from django.utils.translation import gettext_lazy as _
+
 from mysite import settings
 
 from .manager import CustomUserManager
@@ -36,11 +39,24 @@ class Slots(models.Model):
     barber = models.ForeignKey(BarberProfile, on_delete=models.CASCADE, related_name='slots')    
     start_time = models.DateTimeField(null=True)
     end_time = models.DateTimeField(null=True)
-    customer = models.ForeignKey(CustomUser, null=True, on_delete=models.CASCADE, related_name='slot')
+    customer = models.ForeignKey(CustomUser, null=True, blank=True, on_delete=models.CASCADE, related_name='slot')
     is_booked = models.BooleanField(default=False)
     
     def __str__(self) -> str:
         return f'Start time: {self.start_time}. End time {self.end_time}'
+    
+    def clean(self, *args, **kwargs) -> None:
+        if self.start_time >= self.end_time:
+            raise ValidationError(
+                'Start Time cannot come before or equal to End Time'
+            )
+            
+        super(Slots, self).clean( )
+        
+    def save(self, *args, **kwargs) -> None:
+        self.full_clean()
+        return super(Slots, self).save(*args, **kwargs)
+
     
 class Review(models.Model):
     review = models.TextField()
@@ -58,4 +74,4 @@ class Money(models.Model):
     paid_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self) -> str:
-        return f'Paid To: {self.barber} By: {self.customer}'
+        return str(self.amount)
