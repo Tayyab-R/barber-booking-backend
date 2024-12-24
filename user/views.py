@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404
 
 from drf_yasg.utils import swagger_auto_schema
 
+from .utils import RolesChoices
 from .permissions import  IsShopOwner, IsBarber
 from . import serializers
 from .models import CustomUser, BarberProfile, Slots, Review, Money
@@ -186,7 +187,7 @@ def CreateBarberProfile(request):
     if hasattr(user, 'barber_profile'):
         return Response({'Message': 'Profile Already Exists'}, status=status.HTTP_400_BAD_REQUEST)
         
-    user.role = 'BARBER'
+    user.role = RolesChoices.BARBER.value
     user.save()
     barber = BarberProfile.objects.create(user=user)
     barber.save()
