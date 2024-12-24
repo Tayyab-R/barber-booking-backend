@@ -81,7 +81,7 @@ class MinimalBarberSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'phone_number']
         
 
-class SlotSerializer(serializers.ModelSerializer):
+class SlotSerializer(DynamicFieldModelSerializer):
     barber = MinimalBarberSerializer()
     class Meta:
         model = models.Slots
