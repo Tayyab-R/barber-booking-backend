@@ -39,7 +39,7 @@ class BarberProfileAdmin(admin.ModelAdmin):
     
 class SlotsAdmin(admin.ModelAdmin):
     model = Slots
-    list_display = ('barber', 'start_time', 'customer')
+    list_display = ('start_time', 'end_time', 'is_booked')
     
 class MoneyAdmin(admin.ModelAdmin):
     model = Money
