@@ -1,4 +1,5 @@
 from django.contrib.auth.base_user import BaseUserManager
+from .utils import RolesChoices
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password, **extra_fields):
@@ -18,7 +19,7 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_active', True)
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields['role'] = 'ADMIN'
+        extra_fields['role'] = RolesChoices.ADMIN
 
         if extra_fields.get('is_staff') != True:
             raise ValueError('Superuser must have is_staff=True.')
