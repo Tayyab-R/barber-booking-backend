@@ -85,7 +85,7 @@ class SlotSerializer(DynamicFieldModelSerializer):
     barber = MinimalBarberSerializer()
     class Meta:
         model = models.Slots
-        fields = ['id', 'barber', 'start_time', 'end_time', 'customer']
+        fields = ['id', 'barber', 'start_time', 'end_time']
         
 class ReviewSerializer(serializers.ModelSerializer):
     review = serializers.CharField()
