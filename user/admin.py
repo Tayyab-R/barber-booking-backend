@@ -6,7 +6,7 @@ from django.forms.models import ModelMultipleChoiceField
 from django.http import HttpRequest
 
 from .forms import CustomUserCreationForm, CustomUserChangeForm
-from .models import CustomUser, BarberProfile, Slots, Review, Money
+from .models import CustomUser, BarberProfile, Slots, Review, Money, Booking
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
@@ -39,7 +39,7 @@ class BarberProfileAdmin(admin.ModelAdmin):
     
 class SlotsAdmin(admin.ModelAdmin):
     model = Slots
-    list_display = ('start_time', 'end_time', 'is_booked')
+    list_display = ('start_time', 'end_time')
     
 class MoneyAdmin(admin.ModelAdmin):
     model = Money
@@ -50,3 +50,4 @@ admin.site.register(BarberProfile, BarberProfileAdmin)
 admin.site.register(Slots, SlotsAdmin)
 admin.site.register(Review)
 admin.site.register(Money, MoneyAdmin)
+admin.site.register(Booking)
