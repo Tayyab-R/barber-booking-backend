@@ -10,10 +10,10 @@ from django.shortcuts import get_object_or_404
 
 from drf_yasg.utils import swagger_auto_schema
 
-from .utils import RolesChoices
+from .utils import RolesChoices, CreateSlots
 from .permissions import  IsShopOwner, IsBarber
 from . import serializers
-from .models import CustomUser, BarberProfile, Slots, Review, Money
+from .models import CustomUser, BarberProfile, Slots, Review, Money, Booking
 
 @api_view(['GET', 'POST', 'DELETE'])
 @permission_classes([IsAdminUser])
@@ -191,8 +191,16 @@ def CreateBarberProfile(request):
     user.save()
     barber = BarberProfile.objects.create(user=user)
     barber.save()
+    
+    # Create barber slots upon profile creation
+    try:
+        create_slots = CreateSlots(barber)    
+    except:
+        raise Exception('An error ocuured when creating slot for barber profie')
 
-    return Response({'Message' : 'Barber Profile Created.'}, status=status.HTTP_201_CREATED)
+    return Response(
+        {'Message' : 'Barber Profile Created.',
+         'Time Slots Created' : 'Successfully'}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -217,36 +225,10 @@ def Profile(request):
     return Response({'User Profile': serializer.data}, status=status.HTTP_200_OK)
 
 
-@api_view(['POST'])
-@permission_classes([IsBarber])
-def SlotCreationForBarberView(request):
-    """
-    POST /api/barber/create-slot
-    
-    - Purpose:
-        - Make barber able to create his time slot on which he is avialable
-    
-    - Parameters Requirements:
-        - already logged in
-    """
-    if request.method == 'POST':
-        data = request.data
-        
-        serializer = serializers.SlotSerializer(data=data, fields=('start_time', 'end_time'))
-        serializer.is_valid(raise_exception=True)
-        
-        barber = BarberProfile.objects.get(user=request.user)
-        barber.is_available = True
-        
-        slot = Slots.objects.create(barber=barber, start_time=serializer.validated_data['start_time'], end_time=serializer.validated_data['end_time'])
-        slot.save()
-        return Response({'Message' : 'Time slot created successfuly'}, status=status.HTTP_201_CREATED)
-
-    
 @api_view(['GET'])
 def ListBarberSlots(request):
     if request.method == 'GET':
-        slots = Slots.objects.filter(is_booked=False)
+        slots = Slots.objects.all()
         serializer = serializers.SlotSerializer(slots, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -256,19 +238,14 @@ def BookBarberSlot(request, pk):
     if request.method == 'POST':
         customer = request.user
         try:
-            
             booking_slot = Slots.objects.get(pk=pk)
-            if booking_slot.is_booked == True:
-
-                return Response({'Cannot book slot' : 'Slot already booked'}, status=status.HTTP_400_BAD_REQUEST)
-
         except:
-            return Response({'Message' : 'Slot not found'}, status=status.HTTP_404_NOT_FOUND)
-        booking_slot.is_booked = True
-        booking_slot.customer = customer
-        booking_slot.save()
-        return Response({'Message' : 'Booking slot created.'}, status=status.HTTP_201_CREATED)
-
+            return Response({'Error', '404 Slot not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        create_booking = Booking.objects.create(slot=booking_slot,customer=customer)
+        create_booking.save()
+        return Response({'Succeed': 'Booking created'}, status=status.HTTP_201_CREATED)
+ 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
