@@ -12,7 +12,6 @@ urlpatterns = [
     path('barbers/<int:pk>/', views.ListRetrieveDeleteUpdateBarber),
     path('barber/signup/', views.CreateBarberProfile),
     path('profile/', views.Profile),
-    path('barber/create-slot/', views.SlotCreationForBarberView),
     path('barber/slots/', views.ListBarberSlots),
     path('barber/slots/<int:pk>/', views.BookBarberSlot),
     path('barber/write-review/<int:pk>/', views.WriteReviewOfBarberView),
