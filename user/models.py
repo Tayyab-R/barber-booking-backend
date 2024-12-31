@@ -27,7 +27,7 @@ class CustomUser(AbstractUser, TimeStampModel):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
-objects = CustomUserManager()
+    objects = CustomUserManager()
 
 def __str__(self) -> str:
     return self.email
@@ -40,27 +40,15 @@ class BarberProfile(TimeStampModel):
     def __str__(self) -> str:
         return self.user.email
     
-class Slots(TimeStampModel):
+class Slots(TimeStampModel):  
     start_time = models.DateTimeField(null=True)
     end_time = models.DateTimeField(null=True)
-    is_booked = models.BooleanField(default=False)
+    barber = models.ForeignKey(BarberProfile, on_delete=models.CASCADE, related_name='slots')
     
-    def __str__(self) -> str:
-        return f'Start time: {self.start_time}. End time {self.end_time}'
-    
-    def clean(self, *args, **kwargs) -> None:
-        if self.start_time >= self.end_time:
-            raise ValidationError(
-                'Start Time cannot come before or equal to End Time'
-            )
-            
-        super(Slots, self).clean( )
-        
-    def save(self, *args, **kwargs) -> None:
-        self.full_clean()
-        return super(Slots, self).save(*args, **kwargs)
+class Booking(TimeStampModel):
+    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookings')
+    slot = models.OneToOneField(Slots, on_delete=models.CASCADE, related_name='bookings')    
 
-    
 class Review(TimeStampModel):
     review = models.TextField()
     barber = models.ForeignKey(BarberProfile, related_name='reviews', on_delete=models.CASCADE)
