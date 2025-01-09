@@ -1,0 +1,39 @@
+services:
+  database:
+    image: postgres:17-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=tayyab  
+      - POSTGRES_DB=djangodatabase
+
+    networks:
+      - network2
+
+  backend:
+    build: .
+    restart: always
+
+    depends_on:
+      - database
+
+    env_file:
+      - .env
+    ports:
+      - 8000:8000
+    volumes:
+      - .:/app  
+    networks:
+      - network2
+    command: >
+           sh -c "$DJANGODIRECTORY/./wait-for-it.sh database:5432 -- python manage.py makemigrations user &&
+           python manage.py migrate && 
+           python manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  postgres_data:
+
+networks:
+  network2:
