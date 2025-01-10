@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from . import models
-
+from .utils import BookingStates
         
 class DynamicFieldModelSerializer(serializers.ModelSerializer):
     """    
@@ -101,3 +101,9 @@ class MoneySerializer(serializers.ModelSerializer):
 
     def __str__(self) -> str:
         return super().__str__()
+    
+class BookingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Booking
+        fields = ['reason']
+    
