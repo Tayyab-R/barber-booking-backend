@@ -12,6 +12,15 @@ class RolesChoices(Enum):
     @classmethod
     def choices(cls):
         return [(key.value, key.name) for key in cls]
+    
+class BookingStates(Enum):
+    ONGOING = 'OnGoing'
+    COMPLETED = 'Completed'
+    CANCELLED = 'CANCELLED'
+
+    @classmethod
+    def states(cls):
+        return [(key.value, key.name) for key in cls]
 
     
 def CreateSlots(barber):
@@ -23,3 +32,12 @@ def CreateSlots(barber):
 
         slot = models.Slots.objects.create(barber=barber, start_time=start_time, end_time=end_time)
         slot.save()
+
+def get_slot_for_booking(slot):
+    """
+    Get slot from Booking model.
+    """
+    try:
+        return models.Booking.objects.get(slot=slot)
+    except models.Booking.DoesNotExist:
+        return None
