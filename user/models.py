@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from mysite import settings
 
 from .manager import CustomUserManager
-from .utils import RolesChoices
+from .utils import RolesChoices, BookingStates
 
 
 class TimeStampModel(models.Model):
@@ -48,6 +48,8 @@ class Slots(TimeStampModel):
 class Booking(TimeStampModel):
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookings')
     slot = models.OneToOneField(Slots, on_delete=models.CASCADE, related_name='bookings')    
+    status = models.CharField(max_length=15, choices=BookingStates.states, default=BookingStates.ONGOING.value)
+    reason = models.TextField(blank=True, null=True)
 
 class Review(TimeStampModel):
     review = models.TextField()
