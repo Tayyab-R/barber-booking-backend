@@ -13,7 +13,9 @@ urlpatterns = [
     path('barber/signup/', views.CreateBarberProfile),
     path('profile/', views.Profile),
     path('barber/slots/', views.ListBarberSlots),
-    path('barber/slots/<int:pk>/', views.BookBarberSlot),
+    path('barber/slots/book/<int:pk>/', views.BookCancelDeletedBarberSlot),
+    path('barber/slots/cancel/<int:pk>/', views.BookCancelDeletedBarberSlot),
+    path('barber/slots/delete/<int:pk>/', views.BookCancelDeletedBarberSlot),
     path('barber/write-review/<int:pk>/', views.WriteReviewOfBarberView),
     path('barber/pay/<int:pk>/', views.PayMoneyToBarberView),
 
