@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404
 
 from drf_yasg.utils import swagger_auto_schema
 
-from .utils import RolesChoices, CreateSlots
+from .utils import RolesChoices, CreateSlots, BookingStates, get_slot_for_booking
 from .permissions import  IsShopOwner, IsBarber
 from . import serializers
 from .models import CustomUser, BarberProfile, Slots, Review, Money, Booking
@@ -232,20 +232,62 @@ def ListBarberSlots(request):
         serializer = serializers.SlotSerializer(slots, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-@api_view(['POST'])
+@api_view(['POST', 'DELETE', 'PUT'])
 @permission_classes([IsAuthenticated])
-def BookBarberSlot(request, pk):
-    if request.method == 'POST':
-        customer = request.user
-        try:
-            booking_slot = Slots.objects.get(pk=pk)
-        except:
-            return Response({'Error', '404 Slot not found'}, status=status.HTTP_404_NOT_FOUND)
+def BookCancelDeletedBarberSlot(request, pk=None):
+    """
+    POST /api/barber/book/
+        /api/barber/cancel/
+        /api/barber/delete/
         
-        create_booking = Booking.objects.create(slot=booking_slot,customer=customer)
-        create_booking.save()
-        return Response({'Succeed': 'Booking created'}, status=status.HTTP_201_CREATED)
- 
+    - Purpose:
+        - A user can book barber slot.
+        - A user can cance barber slot
+        - A user can delte barber slot
+        
+    """
+    try:
+        customer = request.user
+        booking_slot = get_object_or_404(Slots, pk=pk) if pk else None    
+        
+        if request.method == 'POST':
+            if Booking.objects.filter(slot=booking_slot).exists():
+                return Response({'Error' : 'Slot is already booked'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            create_booking = Booking.objects.create(slot=booking_slot,customer=customer)
+            create_booking.save()
+            return Response({'Succeed': 'Booking created'}, status=status.HTTP_201_CREATED)
+        
+        elif request.method == 'PUT':           
+            data = request.data
+            booking_to_be_cancelled = get_slot_for_booking(booking_slot)
+            
+            if not booking_to_be_cancelled:
+                return Response({'Error':'Booking not found on this slot to cancel'}, status=status.HTTP_404_NOT_FOUND)
+            
+            # Check if booking is already cancelled
+            if booking_to_be_cancelled.state == BookingStates.CANCELLED.value:
+                return Response({'Error' : 'Booking is already cancelled.'}, status=status.HTTP_400_BAD_REQUEST)           
+            
+            booking_to_be_cancelled.state = BookingStates.CANCELLED.value
+            booking_to_be_cancelled.save()
+            serializer = serializers.BookingSerializer(booking_to_be_cancelled, data=data, partial=True)
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response({'Message' : 'Booking Cancelled'}, status=status.HTTP_200_OK)
+                        
+        elif request.method == 'DELETE':
+            booking_to_be_deleted = get_slot_for_booking(booking_slot)
+            if booking_to_be_deleted.customer != customer:
+                return Response({'Error':'You are not authorized to delete this booking.'}, status=status.HTTP_403_FORBIDDEN)
+
+            booking_to_be_deleted.delete()
+            return Response({'Message': 'Booking Successfully Deleted'}, status=status.HTTP_204_NO_CONTENT)          
+
+    except Exception as e:
+        return Response({'Error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
