@@ -1,0 +1,5 @@
+user/migrations
+user/__pycache__
+mysite/__pycache__
+.git
+
