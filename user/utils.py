@@ -41,3 +41,12 @@ def get_slot_for_booking(slot):
         return models.Booking.objects.get(slot=slot)
     except models.Booking.DoesNotExist:
         return None
+    
+def get_barber_by_email(email):
+    """
+    Get barber from database by email
+    """
+    try:
+        return models.BarberProfile.objects.get(user__email=email)
+    except models.BarberProfile.DoesNotExist:
+        return None
