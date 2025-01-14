@@ -103,7 +103,9 @@ class MoneySerializer(serializers.ModelSerializer):
         return super().__str__()
     
 class BookingSerializer(serializers.ModelSerializer):
+    barber = BarberSerializer(read_only=True)
+    slot = SlotSerializer(read_only=True)
     class Meta:
         model = models.Booking
-        fields = ['reason']
+        fields = ['reason', 'slot', 'barber']
     
