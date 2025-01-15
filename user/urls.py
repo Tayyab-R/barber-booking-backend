@@ -18,5 +18,7 @@ urlpatterns = [
     path('barber/slots/delete/<int:pk>/', views.BookCancelDeletedBarberSlot),
     path('barber/write-review/<int:pk>/', views.WriteReviewOfBarberView),
     path('barber/pay/<int:pk>/', views.PayMoneyToBarberView),
-
+    path('barber/slots/all-cancelled/', views.Check_Cancelled_Barber_Slots),
+    path('barber/slots/cancelled/', views.Check_Cancelled_Bookings_With_Datetime),
+    
 ]
