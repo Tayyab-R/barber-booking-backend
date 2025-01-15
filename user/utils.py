@@ -2,6 +2,7 @@ from enum import Enum
 import datetime
 
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 
 from . import models
 class RolesChoices(Enum):
@@ -39,7 +40,7 @@ def get_slot_for_booking(slot):
     """
     try:
         return models.Booking.objects.get(slot=slot)
-    except models.Booking.DoesNotExist:
+    except ObjectDoesNotExist:
         return None
     
 def get_barber_by_email(email):
@@ -48,5 +49,5 @@ def get_barber_by_email(email):
     """
     try:
         return models.BarberProfile.objects.get(user__email=email)
-    except models.BarberProfile.DoesNotExist:
-        return None
+    except models.BarberProfile.DoesNotExist():
+        return None 
