@@ -7,10 +7,14 @@ from rest_framework.authentication import authenticate
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
 from django.shortcuts import get_object_or_404
+from django.db.models import Count
+from django.core.exceptions import ObjectDoesNotExist
+
+from datetime import datetime
 
 from drf_yasg.utils import swagger_auto_schema
 
-from .utils import RolesChoices, CreateSlots, BookingStates, get_slot_for_booking
+from .utils import RolesChoices, CreateSlots, BookingStates, get_slot_for_booking, get_barber_by_email
 from .permissions import  IsShopOwner, IsBarber
 from . import serializers
 from .models import CustomUser, BarberProfile, Slots, Review, Money, Booking
@@ -270,7 +274,6 @@ def BookCancelDeletedBarberSlot(request, pk=None):
                 return Response({'Error' : 'Booking is already cancelled.'}, status=status.HTTP_400_BAD_REQUEST)           
             
             booking_to_be_cancelled.state = BookingStates.CANCELLED.value
-            booking_to_be_cancelled.save()
             serializer = serializers.BookingSerializer(booking_to_be_cancelled, data=data, partial=True)
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
@@ -335,3 +338,82 @@ def PayMoneyToBarberView(request, pk):
                 'Paid To' : barber.user.email}, status=status.HTTP_201_CREATED)
         return Response({'Error' : 'Unauthorized Payment!!'}, status=status.HTTP_403_FORBIDDEN)        
     
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def Check_Cancelled_Barber_Slots(request):
+    """
+    An admin can see cancelled slots of a barber
+    """
+    try:
+        email = request.data['email']
+        if not email:
+            return Response({'Error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            get_barber = get_barber_by_email(email=email)
+        except:
+            return Response({'Error':'Barber not found with the provided email'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get all cancelled bookings of barber 
+        all_cancelled_bookings = Booking.objects.filter(
+        slot__barber=get_barber, state=BookingStates.CANCELLED.value)      
+
+        serializer = serializers.BookingSerializer(all_cancelled_bookings, many=True)    
+        return Response({
+            'Total Cancelled Bookings' : len(all_cancelled_bookings),
+            'All Cancelled Bookings': serializer.data}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f'Unexpected error {e}')
+        return Response({'Error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    
+
+@permission_classes([IsAdminUser])
+@api_view(['POST'])
+def Check_Cancelled_Bookings_With_Datetime(request):
+    """
+    Check cancelled slots of barber with given datetime range
+    """
+    try:
+        email = request.data['email']
+        start_time_from_request = request.data['start_time']
+        end_time_from_request = request.data['end_time']
+
+        if not email or not start_time_from_request or not end_time_from_request:
+            return Response({'error': 'email or start_time or end_time not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # convert strings into datetime object
+            start_time = datetime.strptime(start_time_from_request, '%Y-%m-%d %I:%M%p')
+            end_time = datetime.strptime(end_time_from_request, '%Y-%m-%d %I:%M%p')
+        except ValueError:            
+            return Response({'error': 'Invalid datetime format. Use yyyy-mm-dd hour:minute'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Ensure start_time comes before end_time
+        if start_time >= end_time:
+            return Response({'error': 'Start time must be lower then end time'})
+
+        # ensure barber exists
+        try:
+            get_barber = get_barber_by_email(email=email)
+        except:
+            return Response({'Error':'Barber not found with the provided email'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get all cancelled bookings of barber by time range
+        all_cancelled_bookings = Booking.objects.filter(
+            slot__barber=get_barber,
+            slot__start_time__time__range=(start_time, end_time),
+            state=BookingStates.CANCELLED.value
+            )
+
+        serializer = serializers.BookingSerializer(all_cancelled_bookings, many=True)    
+        return Response({
+            'Total Cancelled Bookings': len(all_cancelled_bookings),
+            'Cancelled Bookings': serializer.data}, status=status.HTTP_200_OK)
+        
+        
+    except Exception as e:
+        print(e)
+        return Response({'error':'An internal server error occured'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
