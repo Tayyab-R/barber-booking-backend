@@ -50,6 +50,7 @@ class Booking(TimeStampModel):
     slot = models.OneToOneField(Slots, on_delete=models.CASCADE, related_name='bookings')    
     state = models.CharField(max_length=15, choices=BookingStates.states, default=BookingStates.ONGOING.value)
     reason = models.TextField(blank=True, null=True)
+    amount = models.PositiveIntegerField(blank=True, null=True)            
 
 class Review(TimeStampModel):
     review = models.TextField()
@@ -58,11 +59,3 @@ class Review(TimeStampModel):
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='reviews', null=True, on_delete=models.SET_NULL)
 
 
-class Money(TimeStampModel):
-    amount = models.PositiveIntegerField()
-    barber = models.ForeignKey(BarberProfile, related_name='money', on_delete=models.CASCADE)
-    barber_slot = models.ForeignKey(Slots, related_name='amount', on_delete=models.CASCADE)
-    customer = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='paid', on_delete=models.CASCADE)
-    
-    def __str__(self) -> str:
-        return str(self.amount)
