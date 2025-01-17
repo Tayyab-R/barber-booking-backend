@@ -5,18 +5,25 @@ from .utils import BookingStates
         
 class DynamicFieldModelSerializer(serializers.ModelSerializer):
     """    
-    A ModelSerializer that takes an additional `fields` argument that
-    controls which fields should be displayed.
+    A ModelSerializer that takes an additional `fields` and 'exclude' argument that
+    controls which fields should be displayed and excluded.
     """
     
     def __init__(self, *args, **kwargs):
         fields = kwargs.pop('fields', None)
+        exclude = kwargs.pop('exclude', None)
 
         super().__init__(*args, **kwargs)
         if fields is not None:
             allowed = set(fields)
             existing = set(self.fields)
             for field_name in existing - allowed:
+                self.fields.pop(field_name)
+        
+        # to exclude fields when serializing        
+        if exclude is not None:
+            not_allowed = set(exclude)
+            for field_name in not_allowed:
                 self.fields.pop(field_name)
                 
                 
@@ -94,18 +101,17 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = models.Review
         fields = ['review', 'email']
         
-class MoneySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Money
-        fields = ['amount']
 
     def __str__(self) -> str:
         return super().__str__()
     
-class BookingSerializer(serializers.ModelSerializer):
+class BookingSerializer(DynamicFieldModelSerializer):
     barber = BarberSerializer(read_only=True)
     slot = SlotSerializer(read_only=True)
+    amount = serializers.IntegerField()
+    reason = serializers.CharField()
+    
     class Meta:
         model = models.Booking
-        fields = ['reason', 'slot', 'barber']
+        fields = ['reason', 'slot', 'barber', 'amount']
     
