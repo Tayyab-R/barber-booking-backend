@@ -1,12 +1,9 @@
 from typing import Any
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.db.models.fields.related import ManyToManyField
-from django.forms.models import ModelMultipleChoiceField
-from django.http import HttpRequest
 
 from .forms import CustomUserCreationForm, CustomUserChangeForm
-from .models import CustomUser, BarberProfile, Slots, Review, Money, Booking
+from .models import CustomUser, BarberProfile, Slots, Review, Booking
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
@@ -40,14 +37,10 @@ class BarberProfileAdmin(admin.ModelAdmin):
 class SlotsAdmin(admin.ModelAdmin):
     model = Slots
     list_display = ('start_time', 'end_time')
-    
-class MoneyAdmin(admin.ModelAdmin):
-    model = Money
-    list_display = ('customer', 'amount', 'barber')
+
     
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(BarberProfile, BarberProfileAdmin)
 admin.site.register(Slots, SlotsAdmin)
 admin.site.register(Review)
-admin.site.register(Money, MoneyAdmin)
 admin.site.register(Booking)
