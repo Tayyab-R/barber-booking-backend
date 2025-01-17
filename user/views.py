@@ -17,7 +17,7 @@ from drf_yasg.utils import swagger_auto_schema
 from .utils import RolesChoices, CreateSlots, BookingStates, get_slot_for_booking, get_barber_by_email
 from .permissions import  IsShopOwner, IsBarber
 from . import serializers
-from .models import CustomUser, BarberProfile, Slots, Review, Money, Booking
+from .models import CustomUser, BarberProfile, Slots, Review, Booking
 
 @api_view(['GET', 'POST', 'DELETE'])
 @permission_classes([IsAdminUser])
@@ -258,7 +258,7 @@ def BookCancelDeletedBarberSlot(request, pk=None):
             if Booking.objects.filter(slot=booking_slot).exists():
                 return Response({'Error' : 'Slot is already booked'}, status=status.HTTP_400_BAD_REQUEST)
             
-            create_booking = Booking.objects.create(slot=booking_slot,customer=customer)
+            create_booking = Booking.objects.create(slot=booking_slot, customer=customer)
             create_booking.save()
             return Response({'Succeed': 'Booking created'}, status=status.HTTP_201_CREATED)
         
@@ -274,7 +274,9 @@ def BookCancelDeletedBarberSlot(request, pk=None):
                 return Response({'Error' : 'Booking is already cancelled.'}, status=status.HTTP_400_BAD_REQUEST)           
             
             booking_to_be_cancelled.state = BookingStates.CANCELLED.value
-            serializer = serializers.BookingSerializer(booking_to_be_cancelled, data=data, partial=True)
+            serializer = serializers.BookingSerializer(
+                    booking_to_be_cancelled, data=data, fields=('reason',)) 
+            
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
                 return Response({'Message' : 'Booking Cancelled'}, status=status.HTTP_200_OK)
@@ -290,6 +292,41 @@ def BookCancelDeletedBarberSlot(request, pk=None):
     except Exception as e:
         return Response({'Error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def Complete_and_Pay_Booking(request, pk):
+    try:
+        if request.method == 'PUT':
+            slot = get_object_or_404(Slots, pk=pk)
+            booking = get_slot_for_booking(slot=slot)
+            
+            if not booking:
+                return Response({'error': 'Booking does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Check if user making request is the customer of booking
+            if not booking.customer == request.user:
+                return Response({'error': 'You are not allowed to perform this action'}, status=status.HTTP_403_FORBIDDEN)
+
+            # Check if booking is already completed and paid
+            if booking.state == BookingStates.COMPLETED.value and booking.amount != None:
+                return Response({'error': 'The booking is already completed and paid.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # set booking state to 'Completed'
+            booking.state = BookingStates.COMPLETED.value
+            serializer = serializers.BookingSerializer(booking, data=request.data, exclude=('reason',))
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response({
+                    'Message': 'Booking marked as completed.',
+                    'Amount Paid': serializer.validated_data['amount'],
+                    'Paid to': request.data['email'],
+                    'Paid By': request.email}, 
+                                status=status.HTTP_200_OK)
+    
+    
+    except ObjectDoesNotExist:
+        return Response({'error': 'Slot not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['POST'])
@@ -312,32 +349,7 @@ def WriteReviewOfBarberView(request, pk):
 
     return Response({'Status' : 'Success', 'Message' : 'Review created.'}, status=status.HTTP_201_CREATED)
     
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def PayMoneyToBarberView(request, pk):
-    if request.method == 'POST':
-        serializer = serializers.MoneySerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
 
-        try:    
-            slot_being_paid = Slots.objects.filter(barber__isnull=False).get(pk=pk)
-            barber = slot_being_paid.barber
-            paying_customer = request.user
-            slot_customer = slot_being_paid.customer
-            
-        except:
-            return Response({'Error' : 'Slot Not Found!!!'}, status=status.HTTP_404_NOT_FOUND)
-   
-        if paying_customer == slot_customer:
-            amount = Money.objects.create(barber_slot=slot_being_paid, amount=serializer.validated_data['amount'], barber=barber, customer=paying_customer, )
-            amount.save()
-            return Response(
-                {'Message' : 'Payment Successfull',
-                'Amount' : serializer.validated_data['amount'],
-                'Paid by' : paying_customer.email,
-                'Paid To' : barber.user.email}, status=status.HTTP_201_CREATED)
-        return Response({'Error' : 'Unauthorized Payment!!'}, status=status.HTTP_403_FORBIDDEN)        
-    
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def Check_Cancelled_Barber_Slots(request):
@@ -349,7 +361,7 @@ def Check_Cancelled_Barber_Slots(request):
         if not email:
             return Response({'Error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
+        try: 
             get_barber = get_barber_by_email(email=email)
         except:
             return Response({'Error':'Barber not found with the provided email'}, status=status.HTTP_404_NOT_FOUND)
