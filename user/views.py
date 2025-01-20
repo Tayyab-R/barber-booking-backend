@@ -320,8 +320,7 @@ def Complete_and_Pay_Booking(request, pk):
                 return Response({
                     'Message': 'Booking marked as completed.',
                     'Amount Paid': serializer.validated_data['amount'],
-                    'Paid to': request.data['email'],
-                    'Paid By': request.email}, 
+                    'Paid By': request.user.email}, 
                                 status=status.HTTP_200_OK)
     
     
@@ -380,7 +379,6 @@ def Check_Cancelled_Barber_Slots(request):
         return Response({'Error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     
-
 @permission_classes([IsAdminUser])
 @api_view(['POST'])
 def Check_Cancelled_Bookings_With_Datetime(request):
@@ -389,8 +387,8 @@ def Check_Cancelled_Bookings_With_Datetime(request):
     """
     try:
         email = request.data['email']
-        start_time_from_request = request.data['start_time']
-        end_time_from_request = request.data['end_time']
+        start_time_from_request = request.data.get('start_time')
+        end_time_from_request = request.data.get('end_time')
 
         if not email or not start_time_from_request or not end_time_from_request:
             return Response({'error': 'email or start_time or end_time not provided'}, status=status.HTTP_400_BAD_REQUEST)
@@ -429,3 +427,60 @@ def Check_Cancelled_Bookings_With_Datetime(request):
         print(e)
         return Response({'error':'An internal server error occured'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def Check_Completed_Slots_of_Barber(request):
+    """
+    An Admin can see all bookings of barber that are completed with
+    datetime range and without datetime range.
+    For example, if admin wants to see completed bookings within the range of
+    from 5:00 AM to 8:PM of some certain day, he can send datetime range in the format
+    yyyy-mm-dd hh:mmPM/AM
+    """
+    try:
+        email = request.data.get('email')      
+        if not email:
+            return Response({'error': 'Please provide barber email!'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        barber = get_barber_by_email(email=email)
+        if not barber:
+            return Response({'error': 'Barber not found with given email.'}, status=status.HTTP_404_NOT_FOUND)
+              
+      
+        if request.method == 'POST':
+            start_time_from_request = request.data.get('start_time')
+            end_time_from_request = request.data.get('end_time')
+            
+            # With datetime
+            if start_time_from_request and end_time_from_request:  
+                
+                # make sure start_time comes before end_time
+                if start_time_from_request >= end_time_from_request:
+                    return Response({'error': 'Start time must be lower and come before end time'}, status=status.HTTP_400_BAD_REQUEST)
+
+                try:
+                    # Strip string into datetime
+                    start_time = datetime.strptime(start_time_from_request, '%Y-%m-%d %I:%M%p')
+                    end_time = datetime.strptime(end_time_from_request, '%Y-%m-%d %I:%M%p')
+                except ValueError:
+                    return Response({'error': 'Invalid datetime format. Use yyyy-mm-dd hh:mmPM/AM'})   
+        
+                completed_bookings = Booking.objects.filter(
+                    slot__barber=barber, slot__start_time__time__range=(start_time, end_time),
+                    state=BookingStates.COMPLETED.value
+                )
+
+                serializer = serializers.BookingSerializer(completed_bookings, many=True)
+                return Response(
+                    {'Total Completed Bookings': len(completed_bookings),
+                        'Completed Bookings': serializer.data}, status=status.HTTP_200_OK)
+            
+            # Without datetime
+            all_completed_bookings = Booking.objects.filter(slot__barber=barber, state=BookingStates.COMPLETED.value                )
+            serializer = serializers.BookingSerializer(all_completed_bookings, many=True)
+                    
+            return Response({'Total Completed Bookings': len(all_completed_bookings),
+                                'Completed Bookings': serializer.data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        raise e
+        return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
