@@ -49,5 +49,5 @@ def get_barber_by_email(email):
     """
     try:
         return models.BarberProfile.objects.get(user__email=email)
-    except models.BarberProfile.DoesNotExist():
-        return None 
+    except models.BarberProfile.DoesNotExist:
+        return None
