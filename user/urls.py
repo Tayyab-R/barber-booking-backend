@@ -20,5 +20,6 @@ urlpatterns = [
     path('barber/write-review/<int:pk>/', views.WriteReviewOfBarberView),
     path('barber/slots/all-cancelled/', views.Check_Cancelled_Barber_Slots),
     path('barber/slots/cancelled/', views.Check_Cancelled_Bookings_With_Datetime),
+    path('barber/slots/completed/', views.Check_Completed_Slots_of_Barber),
     
 ]

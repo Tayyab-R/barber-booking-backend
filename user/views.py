@@ -482,5 +482,4 @@ def Check_Completed_Slots_of_Barber(request):
             return Response({'Total Completed Bookings': len(all_completed_bookings),
                                 'Completed Bookings': serializer.data}, status=status.HTTP_200_OK)
     except Exception as e:
-        raise e
         return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
