@@ -37,10 +37,16 @@ class BarberProfileAdmin(admin.ModelAdmin):
 class SlotsAdmin(admin.ModelAdmin):
     model = Slots
     list_display = ('start_time', 'end_time')
+    
+class BookingAdmin(admin.ModelAdmin):
+    model = Booking
+    list_display = ('slot', 'customer', 'state')
+    search_fields = ('state',)
+    list_filter = ('state', )
 
     
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(BarberProfile, BarberProfileAdmin)
 admin.site.register(Slots, SlotsAdmin)
 admin.site.register(Review)
-admin.site.register(Booking)
+admin.site.register(Booking, BookingAdmin)
